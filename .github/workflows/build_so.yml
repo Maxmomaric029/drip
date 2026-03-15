@@ -22,17 +22,27 @@ jobs:
     - name: Set up Android NDK
       uses: nttld/setup-ndk@v1
       with:
-        ndk-version: r25c # Version recomendada para estabilidad
+        ndk-version: r25c
 
-    - name: Compile SO with ndk-build
+    - name: Find and Compile SO
       run: |
-        # Navegamos al directorio JNI
-        cd app/src/3/main/jni
-        # Ejecutamos ndk-build (está en el PATH gracias a nttld/setup-ndk)
+        # Buscamos donde esta el Android.mk de forma dinamica por si las carpetas cambian
+        MK_PATH=$(find . -name Android.mk -print -quit)
+        if [ -z "$MK_PATH" ]; then
+          echo "ERROR: No se encontró Android.mk en el repositorio"
+          exit 1
+        fi
+        
+        # Obtenemos el directorio del archivo
+        JNI_DIR=$(dirname "$MK_PATH")
+        echo "Compilando en: $JNI_DIR"
+        
+        # Ejecutamos ndk-build en ese directorio
+        cd "$JNI_DIR"
         ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk APP_ABI=arm64-v8a
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: 9B_bloodie_SO
-        path: app/src/3/main/libs/arm64-v8a/libanogs.so
+        path: "**/libs/arm64-v8a/libanogs.so"
